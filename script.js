@@ -15,6 +15,7 @@ class EtchASketch {
         this.attachEventListeners();
         this.createGrid();
         this.startTimer();
+        this.animateHeader();
     }
 
     initializeElements() {
@@ -49,11 +50,10 @@ class EtchASketch {
         }, { passive: false });
         
         this.gridSizeSlider.addEventListener('input', (e) => {
-            this.gridSizeDisplay.textContent = `${e.target.value}x${e.target.value}`;
-        });
-
-        this.gridSizeSlider.addEventListener('change', (e) => {
-            this.gridSize = parseInt(e.target.value);
+            const newSize = parseInt(e.target.value);
+            this.gridSizeDisplay.textContent = `${newSize}x${newSize}`;
+            // Update grid size immediately when slider moves
+            this.gridSize = newSize;
             this.createGrid();
         });
 
@@ -101,31 +101,52 @@ class EtchASketch {
         this.pixelCount = 0;
         this.updatePixelCount();
         
-        // Calculate dynamic container size based on screen
-        const isMobile = window.innerWidth <= 768;
-        const isTablet = window.innerWidth <= 1024;
-        let containerSize = 560;
+        // Get available viewport height minus controls and spacing
+        const vh = window.innerHeight;
+        const vw = window.innerWidth;
         
-        if (isMobile) {
-            containerSize = Math.min(300, window.innerWidth - 40);
-        } else if (isTablet) {
-            containerSize = Math.min(500, window.innerWidth - 100);
+        // Calculate available space for grid
+        let maxHeight, maxWidth;
+        
+        if (vw <= 480) {
+            // Small mobile
+            maxHeight = Math.min(vh * 0.5, 300); // 50% of viewport, max 300px
+            maxWidth = Math.min(vw * 0.9, 300);
+        } else if (vw <= 768) {
+            // Mobile
+            maxHeight = Math.min(vh * 0.6, 400); // 60% of viewport, max 400px
+            maxWidth = Math.min(vw * 0.8, 400);
+        } else if (vw <= 1024) {
+            // Tablet
+            maxHeight = Math.min(vh * 0.7, 500); // 70% of viewport, max 500px
+            maxWidth = Math.min(vw * 0.6, 500);
+        } else {
+            // Desktop
+            maxHeight = Math.min(vh * 0.8, 600); // 80% of viewport, max 600px
+            maxWidth = Math.min(vw * 0.5, 600);
         }
         
-        const cellSize = Math.floor(containerSize / this.gridSize);
+        // Use smaller dimension to maintain square aspect ratio
+        const containerSize = Math.min(maxHeight, maxWidth);
+        
+        // Calculate cell size - smaller when grid is larger
+        const cellSize = Math.max(2, Math.floor(containerSize / this.gridSize));
         const actualContainerSize = cellSize * this.gridSize;
         
         // Update container size
         this.gridContainer.style.width = `${actualContainerSize}px`;
         this.gridContainer.style.height = `${actualContainerSize}px`;
-        this.gridContainer.style.maxWidth = `${actualContainerSize}px`;
-        this.gridContainer.style.maxHeight = `${actualContainerSize}px`;
+        this.gridContainer.style.maxWidth = '100%';
+        this.gridContainer.style.maxHeight = '100%';
+        this.gridContainer.style.overflow = 'hidden';
         
         for (let i = 0; i < this.gridSize * this.gridSize; i++) {
             const cell = document.createElement('div');
             cell.className = 'grid-cell';
             cell.style.width = `${cellSize}px`;
             cell.style.height = `${cellSize}px`;
+            cell.style.minWidth = `${cellSize}px`;
+            cell.style.minHeight = `${cellSize}px`;
             
             // Desktop interactions
             cell.addEventListener('mouseenter', () => {
@@ -393,6 +414,22 @@ class EtchASketch {
             g: parseInt(result[2], 16),
             b: parseInt(result[3], 16)
         } : null;
+    }
+
+    animateHeader() {
+        const header = document.querySelector('.header');
+        
+        // Animate header out after 2 seconds
+        setTimeout(() => {
+            header.style.transition = 'all 1s ease-in-out';
+            header.style.opacity = '0';
+            header.style.transform = 'translateY(-50px)';
+            
+            // Hide header completely after animation
+            setTimeout(() => {
+                header.style.display = 'none';
+            }, 1000);
+        }, 2000);
     }
 }
 
