@@ -1,0 +1,34 @@
+{
+  "name": "etch-a-sketch-elite",
+  "version": "1.0.0",
+  "description": "An elite Etch-a-Sketch web application with advanced drawing features",
+  "main": "index.html",
+  "scripts": {
+    "start": "open index.html",
+    "dev": "python -m http.server 8000 || python3 -m http.server 8000",
+    "deploy": "gh-pages -d .",
+    "predeploy": "echo 'Ready to deploy to GitHub Pages'"
+  },
+  "keywords": [
+    "etch-a-sketch",
+    "drawing",
+    "canvas",
+    "web-app",
+    "javascript",
+    "css",
+    "html5"
+  ],
+  "author": "Mohammed",
+  "license": "MIT",
+  "homepage": "https://mohammed054.github.io/Etch-a-Sketch-Project",
+  "devDependencies": {
+    "gh-pages": "^6.3.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mohammed054/Etch-a-Sketch-Project.git"
+  },
+  "bugs": {
+    "url": "https://github.com/mohammed054/Etch-a-Sketch-Project/issues"
+  }
+}
