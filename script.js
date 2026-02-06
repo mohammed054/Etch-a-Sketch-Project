@@ -32,12 +32,15 @@ class EtchASketch {
         this.pixelCountDisplay = document.getElementById('pixel-count');
         this.drawTimeDisplay = document.getElementById('draw-time');
         this.modeButtons = document.querySelectorAll('.btn-mode');
+        
+        this.setupGridSizeSlider();
     }
 
     attachEventListeners() {
         // Handle window resize for responsive grid
         window.addEventListener('resize', () => {
             if (this.gridSize !== 0) {
+                this.setupGridSizeSlider(); // Update limits on resize
                 this.createGrid();
             }
         });
@@ -51,7 +54,20 @@ class EtchASketch {
         
         this.gridSizeSlider.addEventListener('input', (e) => {
             const newSize = parseInt(e.target.value);
-            this.gridSizeDisplay.textContent = `${newSize}x${newSize}`;
+            const vw = window.innerWidth;
+            let maxGridSize;
+            
+            if (vw <= 480) {
+                maxGridSize = 24;
+            } else if (vw <= 768) {
+                maxGridSize = 32;
+            } else if (vw <= 1024) {
+                maxGridSize = 48;
+            } else {
+                maxGridSize = 64;
+            }
+            
+            this.gridSizeDisplay.textContent = `${newSize}x${newSize} (max: ${maxGridSize})`;
             // Update grid size immediately when slider moves
             this.gridSize = newSize;
             this.createGrid();
@@ -105,48 +121,65 @@ class EtchASketch {
         const vh = window.innerHeight;
         const vw = window.innerWidth;
         
-        // Calculate available space for grid
-        let maxHeight, maxWidth;
+        // Calculate available space for grid based on device
+        let gridWidth, gridHeight, maxGridSize;
         
         if (vw <= 480) {
-            // Small mobile
-            maxHeight = Math.min(vh * 0.5, 300); // 50% of viewport, max 300px
-            maxWidth = Math.min(vw * 0.9, 300);
+            // Small mobile - vertical rectangle 1:2 ratio
+            gridWidth = Math.floor(vw * 0.95); // 95% viewport width
+            gridHeight = Math.floor(gridWidth * 2); // 2x height for tall vertical
+            maxGridSize = 24;
         } else if (vw <= 768) {
-            // Mobile
-            maxHeight = Math.min(vh * 0.6, 400); // 60% of viewport, max 400px
-            maxWidth = Math.min(vw * 0.8, 400);
+            // Mobile - vertical rectangle 1:1.5 ratio
+            gridWidth = Math.floor(vw * 0.92); // 92% viewport width
+            gridHeight = Math.floor(gridWidth * 1.5); // 1.5x height
+            maxGridSize = 32;
         } else if (vw <= 1024) {
-            // Tablet
-            maxHeight = Math.min(vh * 0.7, 500); // 70% of viewport, max 500px
-            maxWidth = Math.min(vw * 0.6, 500);
+            // Tablet - square aspect ratio
+            const maxSize = Math.min(vh * 0.7, vw * 0.6, 500);
+            gridWidth = gridHeight = Math.floor(maxSize);
+            maxGridSize = 48;
         } else {
-            // Desktop
-            maxHeight = Math.min(vh * 0.8, 600); // 80% of viewport, max 600px
-            maxWidth = Math.min(vw * 0.5, 600);
+            // Desktop - square aspect ratio
+            const maxSize = Math.min(vh * 0.8, vw * 0.5, 600);
+            gridWidth = gridHeight = Math.floor(maxSize);
+            maxGridSize = 64;
         }
         
-        // Use smaller dimension to maintain square aspect ratio
-        const containerSize = Math.min(maxHeight, maxWidth);
+        // Enforce grid size limits
+        const limitedGridSize = Math.min(this.gridSize, maxGridSize);
         
-        // Calculate cell size - smaller when grid is larger
-        const cellSize = Math.max(2, Math.floor(containerSize / this.gridSize));
-        const actualContainerSize = cellSize * this.gridSize;
+        // Update grid size if it was limited
+        if (limitedGridSize !== this.gridSize) {
+            this.gridSize = limitedGridSize;
+            this.gridSizeSlider.value = limitedGridSize;
+            this.gridSizeDisplay.textContent = `${limitedGridSize}x${limitedGridSize}`;
+        }
+        
+        // Calculate cell size
+        const cellWidth = Math.max(2, Math.floor(gridWidth / this.gridSize));
+        const cellHeight = Math.max(2, Math.floor(gridHeight / this.gridSize));
+        
+        // Calculate actual container size
+        const actualWidth = cellWidth * this.gridSize;
+        const actualHeight = cellHeight * this.gridSize;
         
         // Update container size
-        this.gridContainer.style.width = `${actualContainerSize}px`;
-        this.gridContainer.style.height = `${actualContainerSize}px`;
-        this.gridContainer.style.maxWidth = '100%';
+        this.gridContainer.style.width = `${actualWidth}px`;
+        this.gridContainer.style.height = `${actualHeight}px`;
+        this.gridContainer.style.maxWidth = '100vw';
         this.gridContainer.style.maxHeight = '100%';
         this.gridContainer.style.overflow = 'hidden';
+        this.gridContainer.style.boxSizing = 'border-box';
         
         for (let i = 0; i < this.gridSize * this.gridSize; i++) {
             const cell = document.createElement('div');
             cell.className = 'grid-cell';
-            cell.style.width = `${cellSize}px`;
-            cell.style.height = `${cellSize}px`;
-            cell.style.minWidth = `${cellSize}px`;
-            cell.style.minHeight = `${cellSize}px`;
+            cell.style.width = `${cellWidth}px`;
+            cell.style.height = `${cellHeight}px`;
+            cell.style.minWidth = `${cellWidth}px`;
+            cell.style.minHeight = `${cellHeight}px`;
+            cell.style.boxSizing = 'border-box';
             
             // Desktop interactions
             cell.addEventListener('mouseenter', () => {
@@ -414,6 +447,33 @@ class EtchASketch {
             g: parseInt(result[2], 16),
             b: parseInt(result[3], 16)
         } : null;
+    }
+
+    setupGridSizeSlider() {
+        const vw = window.innerWidth;
+        let maxGridSize;
+        
+        if (vw <= 480) {
+            maxGridSize = 24;
+        } else if (vw <= 768) {
+            maxGridSize = 32;
+        } else if (vw <= 1024) {
+            maxGridSize = 48;
+        } else {
+            maxGridSize = 64;
+        }
+        
+        this.gridSizeSlider.max = maxGridSize;
+        
+        // If current grid size exceeds max, adjust it
+        if (this.gridSize > maxGridSize) {
+            this.gridSize = maxGridSize;
+            this.gridSizeSlider.value = maxGridSize;
+            this.gridSizeDisplay.textContent = `${maxGridSize}x${maxGridSize}`;
+        }
+        
+        // Update display to show device limit
+        this.gridSizeDisplay.textContent = `${this.gridSize}x${this.gridSize} (max: ${maxGridSize})`;
     }
 
     animateHeader() {
