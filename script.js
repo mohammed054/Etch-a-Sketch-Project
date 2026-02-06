@@ -34,8 +34,27 @@ class EtchASketch {
     }
 
     attachEventListeners() {
+        // Handle window resize for responsive grid
+        window.addEventListener('resize', () => {
+            if (this.gridSize !== 0) {
+                this.createGrid();
+            }
+        });
+        
+        // Prevent scrolling on mobile when drawing
+        document.addEventListener('touchmove', (e) => {
+            if (e.target.closest('.grid-container') && this.isDrawing) {
+                e.preventDefault();
+            }
+        }, { passive: false });
+        
         this.gridSizeSlider.addEventListener('input', (e) => {
             this.gridSizeDisplay.textContent = `${e.target.value}x${e.target.value}`;
+        });
+
+        this.gridSizeSlider.addEventListener('change', (e) => {
+            this.gridSize = parseInt(e.target.value);
+            this.createGrid();
         });
 
         this.createGridBtn.addEventListener('click', () => this.createGrid());
@@ -82,7 +101,25 @@ class EtchASketch {
         this.pixelCount = 0;
         this.updatePixelCount();
         
-        const cellSize = 560 / this.gridSize;
+        // Calculate dynamic container size based on screen
+        const isMobile = window.innerWidth <= 768;
+        const isTablet = window.innerWidth <= 1024;
+        let containerSize = 560;
+        
+        if (isMobile) {
+            containerSize = Math.min(300, window.innerWidth - 40);
+        } else if (isTablet) {
+            containerSize = Math.min(500, window.innerWidth - 100);
+        }
+        
+        const cellSize = Math.floor(containerSize / this.gridSize);
+        const actualContainerSize = cellSize * this.gridSize;
+        
+        // Update container size
+        this.gridContainer.style.width = `${actualContainerSize}px`;
+        this.gridContainer.style.height = `${actualContainerSize}px`;
+        this.gridContainer.style.maxWidth = `${actualContainerSize}px`;
+        this.gridContainer.style.maxHeight = `${actualContainerSize}px`;
         
         for (let i = 0; i < this.gridSize * this.gridSize; i++) {
             const cell = document.createElement('div');
@@ -90,6 +127,7 @@ class EtchASketch {
             cell.style.width = `${cellSize}px`;
             cell.style.height = `${cellSize}px`;
             
+            // Desktop interactions
             cell.addEventListener('mouseenter', () => {
                 if (this.isDrawing) {
                     this.drawOnCell(cell);
@@ -99,19 +137,28 @@ class EtchASketch {
             cell.addEventListener('mousedown', () => {
                 this.drawOnCell(cell);
             });
-
+            
+            // Mobile/tablet touch interactions
             cell.addEventListener('touchstart', (e) => {
                 e.preventDefault();
+                this.isDrawing = true;
                 this.drawOnCell(cell);
             });
 
             cell.addEventListener('touchmove', (e) => {
                 e.preventDefault();
-                const touch = e.touches[0];
-                const element = document.elementFromPoint(touch.clientX, touch.clientY);
-                if (element && element.classList.contains('grid-cell')) {
-                    this.drawOnCell(element);
+                if (this.isDrawing) {
+                    const touch = e.touches[0];
+                    const element = document.elementFromPoint(touch.clientX, touch.clientY);
+                    if (element && element.classList.contains('grid-cell')) {
+                        this.drawOnCell(element);
+                    }
                 }
+            });
+
+            cell.addEventListener('touchend', (e) => {
+                e.preventDefault();
+                this.isDrawing = false;
             });
 
             this.gridContainer.appendChild(cell);
